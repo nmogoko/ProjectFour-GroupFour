@@ -1,0 +1,32 @@
+.profile-container {
+  max-width: 500px;
+  margin: 0 auto;
+  padding: 20px;
+  text-align: center;
+}
+
+.profile-picture-container {
+  margin-bottom: 20px;
+}
+
+.profile-picture {
+  width: 150px;
+  height: 150px;
+  border-radius: 50%;
+  object-fit: cover;
+  margin-bottom: 10px;
+}
+
+.back-button {
+  display: inline-block;
+  margin-top: 20px;
+  padding: 8px 12px;
+  background-color: #2196f3;
+  color: white;
+  text-decoration: none;
+  border-radius: 6px;
+}
+
+.back-button:hover {
+  background-color: #1976d2;
+}
