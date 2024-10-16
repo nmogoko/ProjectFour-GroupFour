@@ -2,7 +2,7 @@
 from flask import Flask, jsonify, request
 from flask_sqlalchemy import SQLAlchemy
 from src.config import Config
-from src.models import ReadingList, User, db
+from src.models import ReadingList, User, db, Task
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_jwt_extended import JWTManager, create_access_token
 import datetime
@@ -84,6 +84,10 @@ def get_single_reading_list(reading_list_id):
 
         return {"message": f"artist with id {reading_list_id} has been deleted"}
 
+@app.route('/tasks', methods=['GET'])
+def get_all_tasks():
+    task_list = Task.query.all()
+    return jsonify([task_list_item.tasks_serializer() for task_list_item in task_list])
 
 if __name__ == "__main__":
     app.run(debug=True)
