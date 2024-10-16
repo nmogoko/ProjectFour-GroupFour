@@ -13,6 +13,7 @@ app = Flask(__name__)
 app.config.from_object(Config)
 
 db.init_app(app)
+jwt = JWTManager(app)
 
 
 @app.route('/sign-up', methods=['POST'])
@@ -22,7 +23,7 @@ def sign_up():
     password = data.get('password')
 
     if not email or not password:
-        return jsonify({"msg": "Username and password are required"}), 400
+        return jsonify({"msg": "Email and password are required"}), 400
     
     # Check if user already exists
     existing_user = User.query.filter_by(email=email).first()
@@ -38,6 +39,29 @@ def sign_up():
     db.session.commit()
 
     return jsonify({"msg": "User created successfully"}), 201
+
+@app.route('/sign-in', methods=['POST'])
+def sign_in():
+    data = request.get_json()
+    email = data.get('email')
+    password = data.get('password')
+
+    if not email or not password:
+        return jsonify({"msg": "Missing email or password"}), 400
+    
+    user = User.query.filter_by(email=email).first()
+
+    if not user or not check_password_hash(user.password, password):
+        return jsonify({"msg": "Invalid username or password"}), 401
+    
+    user_data = {
+        "id": user.id,
+        "email": user.email
+    }
+    
+    access_token = create_access_token(identity=user_data)
+    return jsonify(access_token=access_token), 200
+    
 
 @app.route('/reading-list', methods=['GET'])
 def get_reading_list():
