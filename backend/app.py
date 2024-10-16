@@ -5,7 +5,7 @@ from src.config import Config
 from src.models import ReadingList, User, db, Task
 from src.utils import with_user_middleware
 from werkzeug.security import generate_password_hash, check_password_hash
-from flask_jwt_extended import JWTManager, create_access_token
+from flask_jwt_extended import JWTManager, get_jwt, jwt_required, create_access_token
 import datetime
 
 
@@ -35,7 +35,6 @@ def sign_up():
     hashed_password = generate_password_hash(password, method='pbkdf2:sha256')
     new_user = User(email=email, password=hashed_password, created_at=datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
 
-
     db.session.add(new_user)
     db.session.commit()
 
@@ -62,7 +61,12 @@ def sign_in():
     
     access_token = create_access_token(identity=user_data)
     return jsonify(access_token=access_token), 200
-    
+
+@app.route('/logout', methods=['POST'])
+def logout():
+    # Client-side token removal approach, no server-side revocation needed
+    return jsonify({"msg": "Logout successful."}), 200
+
 
 @app.route('/reading-list', methods=['GET'])
 def get_reading_list():
@@ -76,14 +80,15 @@ def get_single_reading_list(reading_list_id):
 
     if request.method == "GET":
         if reading_list is None:
-            return jsonify({"message": f"reading list with id {reading_list_id} not found."}), 404
+            return jsonify({"message": f"Reading list with id {reading_list_id} not found."}), 404
 
         return jsonify(reading_list.reading_list_serializer())
     elif request.method == "DELETE":
         db.session.delete(reading_list)
         db.session.commit()
 
-        return {"message": f"artist with id {reading_list_id} has been deleted"}
+        return {"message": f"Reading list with id {reading_list_id} has been deleted"}
+
 
 @app.route('/tasks', methods=['GET'])
 @with_user_middleware
@@ -93,6 +98,7 @@ def get_all_tasks():
     
     task_list = Task.query.filter_by(user_id=g.user_id).all()
     return jsonify([task_list_item.tasks_serializer() for task_list_item in task_list])
+
 
 if __name__ == "__main__":
     app.run(debug=True)
