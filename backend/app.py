@@ -1,8 +1,9 @@
 #  This is the entry point of our application
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request, g
 from flask_sqlalchemy import SQLAlchemy
 from src.config import Config
-from src.models import ReadingList, User, db
+from src.models import ReadingList, User, db, Task
+from src.utils import with_user_middleware
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_jwt_extended import JWTManager, create_access_token
 import datetime
@@ -84,6 +85,14 @@ def get_single_reading_list(reading_list_id):
 
         return {"message": f"artist with id {reading_list_id} has been deleted"}
 
+@app.route('/tasks', methods=['GET'])
+@with_user_middleware
+def get_all_tasks():
+    if g.user_id is None:
+        return jsonify({"error": "Unauthorized access"}), 401
+    
+    task_list = Task.query.filter_by(user_id=g.user_id).all()
+    return jsonify([task_list_item.tasks_serializer() for task_list_item in task_list])
 
 if __name__ == "__main__":
     app.run(debug=True)
