@@ -10,6 +10,9 @@ class Status(enum.Enum):
     Read = "Read"
     Unread = "Unread"
 
+class ListStatus(enum.Enum):
+    Done = "Done"
+    NotDone = "NotDone"
 
 class User(db.Model, SerializerMixin):
     __tablename__ = 'users'
@@ -51,16 +54,16 @@ class ReadingList(db.Model, SerializerMixin):
     #         'created_at': self.created_at
     #     }
 
-class Task(db.Model):
+class Task(db.Model, SerializerMixin):
     __tablename__ = 'daily_tasks_list'
 
     task_id = db.Column(db.Integer, primary_key=True)
     task_title = db.Column(db.String(100), nullable=False)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
-    status = db.Column(db.Enum(Status), nullable=True)
+    status = db.Column(db.Enum(ListStatus), nullable=True)
     created_at = db.Column(db.DateTime)
 
     def tasks_serializer(self):
         return super().serialize()
-    
+  
     
