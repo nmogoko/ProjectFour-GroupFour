@@ -9,11 +9,10 @@ def with_user_middleware(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
         token = request.headers.get('Authorization')  # Extract token from headers (e.g., Bearer token)
-        print(token)
+        
         if token:
             token = token.split()[1]  # Remove 'Bearer' and get the actual token
             decoded_token = decode_token(token)  # Extract or decode the token to get user_id
-            print(decoded_token)
             g.user_id = decoded_token['sub']['id']  # Store the user_id in g (global context for the request)
         else:
             g.user_id = None
