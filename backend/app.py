@@ -1,11 +1,13 @@
 #  This is the entry point of our application
 from flask import Flask, jsonify, request, g
 from flask_sqlalchemy import SQLAlchemy
+from flask_cors import CORS
 from src.config import Config
 from src.models import ReadingList, User, db, Task, MovieList
 from src.utils import with_user_middleware
 from werkzeug.security import generate_password_hash, check_password_hash
-from flask_jwt_extended import JWTManager, get_jwt, jwt_required, create_access_token
+from flask_mail import Mail, Message
+from flask_jwt_extended import JWTManager, get_jwt, jwt_required, decode_token, create_access_token, get_jwt_identity, create_refresh_token
 import datetime
 
 
@@ -15,7 +17,10 @@ app.config.from_object(Config)
 
 db.init_app(app)
 jwt = JWTManager(app)
+mail = Mail(app)
+CORS(app, resources={r"/*": {"origins": ["http://localhost:3000", "https://projectfour-groupfour-frontend.onrender.com"]}})
 
+blacklist = set()
 
 @app.route('/sign-up', methods=['POST'])
 def sign_up():
@@ -62,14 +67,84 @@ def sign_in():
     }
 
     access_token = create_access_token(identity=user_data)
-    return jsonify(access_token=access_token), 200
+    refresh_token = create_refresh_token(identity=user_data)
+    return jsonify(access_token=access_token, refresh_token=refresh_token), 200
+
+@jwt.token_in_blocklist_loader
+def check_if_token_in_blacklist(jwt_header, jwt_payload):
+    return jwt_payload['jti'] in blacklist
 
 
 @app.route('/logout', methods=['POST'])
+@jwt_required()
 def logout():
-    # Client-side token removal approach, no server-side revocation needed
-    return jsonify({"msg": "Logout successful."}), 200
+    jti = get_jwt()['jti']  # JWT ID
+    blacklist.add(jti)
+    return jsonify(msg="Successfully logged out"), 200
 
+@app.route('/forgot-password', methods=['POST'])
+def forgot_password():
+    data = request.get_json()
+    email = data.get('email')
+    
+    if not email:
+        return jsonify({"msg": "Email is required"}), 400
+    
+    user = User.query.filter_by(email=email).first()
+    
+    if user is None:
+        return jsonify({"msg": "Password reset email sent!"}), 200
+
+    user_data = {
+        "id": user.id,
+        "email": user.email
+    }
+
+    # Create a password reset token that expires in 15 minutes
+    reset_token = create_access_token(identity=user_data, expires_delta=datetime.timedelta(minutes=15))
+
+    # Send email with reset link
+    msg = Message(subject="Password Reset", 
+                  sender="noreply@yourapp.com", 
+                  recipients=[email])
+    msg.body = f"Please click the link to reset your password: http://localhost:3000/reset-password/{reset_token}"
+    mail.send(msg)
+
+    return jsonify({"msg": "Password reset email sent!"}), 200
+
+@app.route('/reset-password/<token>', methods=['POST'])
+def reset_password(token):
+    data = request.get_json()
+    new_password = data.get('new_password')
+    
+    if not new_password:
+        return jsonify({"msg": "New password is required"}), 400
+
+    try:
+        # Decode the token to get the user identity
+        decoded_token = decode_token(token)
+        email = decoded_token['sub']['email']
+    except Exception as e:
+        return jsonify({"msg": "Invalid token"}), 401
+    
+    hashed_password = generate_password_hash(new_password, method='pbkdf2:sha256')
+
+    # Update the password in the database using SQLAlchemy
+    user = User.query.filter_by(email=email).first()
+    if user:
+        user.password = hashed_password
+        db.session.commit()
+        return jsonify({"msg": "Password has been reset successfully"}), 200
+    else:
+        return jsonify({"msg": "User not found"}), 404
+
+@app.route('/refresh-token', methods=['POST'])
+@jwt_required(refresh=True)
+def refresh_token():
+    current_user = get_jwt_identity()
+    
+    new_access_token = create_access_token(identity=current_user)
+    return jsonify(access_token=new_access_token), 200
 
 @app.route('/reading-list', methods=['GET'])
 def get_reading_list():
