@@ -90,6 +90,39 @@ def get_single_reading_list(reading_list_id):
         return {"message": f"Reading list with id {reading_list_id} has been deleted"}
 
 
+
+@app.route('/create_reading_list', methods=['POST'])
+@with_user_middleware
+def create_reading_list_item():
+    # Check if the user is authenticated
+    if g.user_id is None:
+        return jsonify({"error": "Unauthorized access"}), 401
+
+    # Get JSON data from the request
+    data = request.get_json()
+    
+    # Validate that the required data is present
+    if not data or 'book_title' not in data:
+        return jsonify({"error": "Bad Request", "message": "Book title is required"}), 400
+
+    # Create a new ReadingList item
+    new_reading_item = ReadingList(
+        book_title=data['book_title'],
+        status=data.get('status'),  # Optional, if status is not provided it can be None
+        created_at=datetime.datetime.utcnow().isoformat(),  # Using ISO format for created_at
+        user_id=g.user_id
+    )
+
+    # Add the new item to the database session and commit
+    db.session.add(new_reading_item)
+    db.session.commit()
+
+    # Return the serialized representation of the new reading list item
+    return jsonify(new_reading_item.reading_list_serializer()), 201
+
+
+
+
 @app.route('/tasks', methods=['GET'])
 @with_user_middleware
 def get_all_tasks():

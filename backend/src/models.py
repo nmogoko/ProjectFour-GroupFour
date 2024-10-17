@@ -46,13 +46,7 @@ class ReadingList(db.Model, SerializerMixin):
     def reading_list_serializer(self):
         return super().serialize()
 
-    # def reading_list_serializer(self):
-    #     return {
-    #         'book_id': self.id,
-    #         'book_title': self.title,
-    #         'status': self.status,
-    #         'created_at': self.created_at
-    #     }
+
 
 class Task(db.Model, SerializerMixin):
     __tablename__ = 'daily_tasks_list'
