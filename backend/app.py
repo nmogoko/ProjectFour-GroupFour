@@ -99,6 +99,24 @@ def get_all_tasks():
     task_list = Task.query.filter_by(user_id=g.user_id).all()
     return jsonify([task_list_item.tasks_serializer() for task_list_item in task_list])
 
+@app.route('/create_task', methods=['POST'])
+@with_user_middleware
+def create_task():
+    if g.user_id is None:
+        return jsonify({"error": "Unauthorized access"}), 401
+
+    data = request.get_json()
+    if not data or 'task_title' not in data:
+        return jsonify({"error": "Bad Request", "message": "Task title is required"}), 400
+
+    new_task = Task(task_title=data['task_title'], user_id=g.user_id, created_at=datetime.datetime.now(datetime.timezone.utc))
+    db.session.add(new_task)
+    db.session.commit()
+
+    return jsonify(new_task.tasks_serializer()), 201
+
+
+
 
 if __name__ == "__main__":
     app.run(debug=True)
