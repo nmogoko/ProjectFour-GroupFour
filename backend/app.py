@@ -127,6 +127,19 @@ def get_task(task_id):
 
     return jsonify(task.tasks_serializer()), 200
 
+@app.route('/delete_task/<int:task_id>', methods=['DELETE'])
+@with_user_middleware
+def delete_task(task_id):
+    if g.user_id is None:
+        return jsonify({"error": "Unauthorized access"}), 401
+
+    task = Task.query.filter_by(task_id=task_id, user_id=g.user_id).first()
+    if task is None:
+        return jsonify({"error": "Not Found", "message": "Task not found"}), 404
+
+    db.session.delete(task)
+    db.session.commit()
+    return jsonify({"message": "Task deleted successfully"}), 200
 
 
 
