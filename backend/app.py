@@ -2,7 +2,7 @@
 from flask import Flask, jsonify, request, g
 from flask_sqlalchemy import SQLAlchemy
 from src.config import Config
-from src.models import ReadingList, User, db, Task
+from src.models import ReadingList, User, db, Task, MovieList
 from src.utils import with_user_middleware
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_jwt_extended import JWTManager, get_jwt, jwt_required, create_access_token
@@ -203,6 +203,28 @@ def delete_task(task_id):
     db.session.commit()
     return jsonify({"message": "Task deleted successfully"}), 200
 
+# Route to create a new movie
+@app.route('/create_movies', methods=['POST'])
+@with_user_middleware
+def create_movie():
+    if g.user_id is None:
+        return jsonify({"error": "Unauthorized access"}), 401
+    
+    data = request.get_json()
+    if not data or 'movie_title' not in data:
+        return jsonify({"error": "Bad Request", "message": "Movie title is required"}), 400
+    
+    new_movie = MovieList(
+        movie_title=data['movie_title'],
+        user_id=g.user_id,  # Assuming you set user_id in g
+        status=data.get('status', 'NotWatched'),
+        created_at=datetime.datetime.now(datetime.timezone.utc)
+    )
+    
+    db.session.add(new_movie)
+    db.session.commit()
+
+    return jsonify(new_movie.movie_serializer()), 201
 
 if __name__ == "__main__":
     app.run(debug=True)
