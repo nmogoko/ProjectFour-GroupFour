@@ -256,5 +256,26 @@ def get_all_movies():
     # Serialize the movie data
     return jsonify([movie.movie_serializer() for movie in movie_list]), 200
 
+@app.route('/delete_movie/<int:movie_id>', methods=['DELETE'])
+@with_user_middleware
+def delete_movie(movie_id):
+    # Check if the user is authenticated
+    if g.user_id is None:
+        return jsonify({"error": "Unauthorized access"}), 401
+
+    # Fetch the movie from the database for the given movie_id and user_id
+    movie = MovieList.query.filter_by(movie_id=movie_id, user_id=g.user_id).first()
+
+    # Check if the movie exists and belongs to the current user
+    if movie is None:
+        return jsonify({"error": "Not Found", "message": "Movie not found"}), 404
+
+    # Delete the movie
+    db.session.delete(movie)
+    db.session.commit()
+
+    # Return a success message
+    return jsonify({"message": "Movie deleted successfully"}), 200
+
 if __name__ == "__main__":
     app.run(debug=True)
