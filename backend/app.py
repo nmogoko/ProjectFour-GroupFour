@@ -25,20 +25,22 @@ def sign_up():
 
     if not email or not password:
         return jsonify({"msg": "Email and password are required"}), 400
-    
+
     # Check if user already exists
     existing_user = User.query.filter_by(email=email).first()
     if existing_user:
         return jsonify({"msg": "User already exists"}), 409
-    
+
     # Hash the password and create a new user
     hashed_password = generate_password_hash(password, method='pbkdf2:sha256')
-    new_user = User(email=email, password=hashed_password, created_at=datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+    new_user = User(email=email, password=hashed_password,
+                    created_at=datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
 
     db.session.add(new_user)
     db.session.commit()
 
     return jsonify({"msg": "User created successfully"}), 201
+
 
 @app.route('/sign-in', methods=['POST'])
 def sign_in():
@@ -48,19 +50,20 @@ def sign_in():
 
     if not email or not password:
         return jsonify({"msg": "Missing email or password"}), 400
-    
+
     user = User.query.filter_by(email=email).first()
 
     if not user or not check_password_hash(user.password, password):
         return jsonify({"msg": "Invalid username or password"}), 401
-    
+
     user_data = {
         "id": user.id,
         "email": user.email
     }
-    
+
     access_token = create_access_token(identity=user_data)
     return jsonify(access_token=access_token), 200
+
 
 @app.route('/logout', methods=['POST'])
 def logout():
@@ -90,7 +93,6 @@ def get_single_reading_list(reading_list_id):
         return {"message": f"Reading list with id {reading_list_id} has been deleted"}
 
 
-
 @app.route('/create_reading_list', methods=['POST'])
 @with_user_middleware
 def create_reading_list_item():
@@ -100,7 +102,7 @@ def create_reading_list_item():
 
     # Get JSON data from the request
     data = request.get_json()
-    
+
     # Validate that the required data is present
     if not data or 'book_title' not in data:
         return jsonify({"error": "Bad Request", "message": "Book title is required"}), 400
@@ -108,8 +110,10 @@ def create_reading_list_item():
     # Create a new ReadingList item
     new_reading_item = ReadingList(
         book_title=data['book_title'],
-        status=data.get('status'),  # Optional, if status is not provided it can be None
-        created_at=datetime.datetime.utcnow().isoformat(),  # Using ISO format for created_at
+        # Optional, if status is not provided it can be None
+        status=data.get('status'),
+        # Using ISO format for created_at
+        created_at=datetime.datetime.utcnow().isoformat(),
         user_id=g.user_id
     )
 
@@ -121,6 +125,27 @@ def create_reading_list_item():
     return jsonify(new_reading_item.reading_list_serializer()), 201
 
 
+@app.route('/delete_reading_list/<int:book_id>', methods=['DELETE'])
+@with_user_middleware
+def delete_reading_list_item(book_id):
+    # Check if the user is authenticated
+    if g.user_id is None:
+        return jsonify({"error": "Unauthorized access"}), 401
+
+    # Query the ReadingList item by book_id and user_id to ensure ownership
+    reading_item = ReadingList.query.filter_by(
+        book_id=book_id, user_id=g.user_id).first()
+
+    # Check if the reading item exists
+    if reading_item is None:
+        return jsonify({"error": "Not Found", "message": "Reading list item not found"}), 404
+
+    # Delete the reading item from the database
+    db.session.delete(reading_item)
+    db.session.commit()
+
+    # Return a success message after deletion
+    return jsonify({"message": "Reading list item deleted successfully"}), 200
 
 
 @app.route('/tasks', methods=['GET'])
@@ -128,9 +153,10 @@ def create_reading_list_item():
 def get_all_tasks():
     if g.user_id is None:
         return jsonify({"error": "Unauthorized access"}), 401
-    
+
     task_list = Task.query.filter_by(user_id=g.user_id).all()
     return jsonify([task_list_item.tasks_serializer() for task_list_item in task_list])
+
 
 @app.route('/create_task', methods=['POST'])
 @with_user_middleware
@@ -142,11 +168,13 @@ def create_task():
     if not data or 'task_title' not in data:
         return jsonify({"error": "Bad Request", "message": "Task title is required"}), 400
 
-    new_task = Task(task_title=data['task_title'], user_id=g.user_id, created_at=datetime.datetime.now(datetime.timezone.utc))
+    new_task = Task(task_title=data['task_title'], user_id=g.user_id,
+                    created_at=datetime.datetime.now(datetime.timezone.utc))
     db.session.add(new_task)
     db.session.commit()
 
     return jsonify(new_task.tasks_serializer()), 201
+
 
 @app.route('/get_task/<int:task_id>', methods=['GET'])
 @with_user_middleware
@@ -159,6 +187,7 @@ def get_task(task_id):
         return jsonify({"error": "Not Found"}), 404
 
     return jsonify(task.tasks_serializer()), 200
+
 
 @app.route('/delete_task/<int:task_id>', methods=['DELETE'])
 @with_user_middleware
@@ -173,8 +202,6 @@ def delete_task(task_id):
     db.session.delete(task)
     db.session.commit()
     return jsonify({"message": "Task deleted successfully"}), 200
-
-
 
 
 if __name__ == "__main__":
