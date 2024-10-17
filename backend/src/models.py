@@ -60,4 +60,17 @@ class Task(db.Model, SerializerMixin):
     def tasks_serializer(self):
         return super().serialize()
   
+class MovieList(db.Model, SerializerMixin):
+    _tablename_ = 'movie_list'
+
+    movie_id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    movie_title = db.Column(db.String(100), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    status = db.Column(db.Enum('Watched', 'NotWatched', name='movie_list_status'), nullable=True)
+    created_at = db.Column(db.DateTime)
+
+    user = db.relationship('User', backref='movies')
+
+    def movie_serializer(self):
+        return self.serialize()
     
