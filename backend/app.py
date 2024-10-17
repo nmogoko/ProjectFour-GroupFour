@@ -115,6 +115,19 @@ def create_task():
 
     return jsonify(new_task.tasks_serializer()), 201
 
+@app.route('/get_task/<int:task_id>', methods=['GET'])
+@with_user_middleware
+def get_task(task_id):
+    if g.user_id is None:
+        return jsonify({"error": "Unauthorized access"}), 401
+
+    task = Task.query.filter_by(task_id=task_id, user_id=g.user_id).first()
+    if task is None:
+        return jsonify({"error": "Not Found"}), 404
+
+    return jsonify(task.tasks_serializer()), 200
+
+
 
 
 
