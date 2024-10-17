@@ -226,5 +226,35 @@ def create_movie():
 
     return jsonify(new_movie.movie_serializer()), 201
 
+@app.route('/get_movie/<int:movie_id>', methods=['GET'])
+@with_user_middleware
+def get_movie(movie_id):
+    # Check if the user is authenticated
+    if g.user_id is None:
+        return jsonify({"error": "Unauthorized access"}), 401
+
+    # Fetch the movie from the database for the given movie_id and user_id
+    movie = MovieList.query.filter_by(movie_id=movie_id, user_id=g.user_id).first()
+
+    # Check if the movie exists and belongs to the current user
+    if movie is None:
+        return jsonify({"error": "Not Found"}), 404
+
+    # Return the serialized representation of the movie
+    return jsonify(movie.movie_serializer()), 200
+
+@app.route('/movies', methods=['GET'])
+@with_user_middleware
+def get_all_movies():
+    # Check if the user is authenticated
+    if g.user_id is None:
+        return jsonify({"error": "Unauthorized access"}), 401
+
+    # Fetch all movies from the database for the current user
+    movie_list = MovieList.query.filter_by(user_id=g.user_id).all()
+
+    # Serialize the movie data
+    return jsonify([movie.movie_serializer() for movie in movie_list]), 200
+
 if __name__ == "__main__":
     app.run(debug=True)
