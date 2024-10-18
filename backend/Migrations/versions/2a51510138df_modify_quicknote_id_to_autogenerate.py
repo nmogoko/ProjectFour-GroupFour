@@ -1,7 +1,7 @@
 """modify quicknote id to autogenerate
 
 Revision ID: 2a51510138df
-Revises: 221b4c94f758
+Revises: f7a925ca459c
 Create Date: 2024-10-18 10:37:49.290717
 
 """
@@ -13,7 +13,7 @@ import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
 revision: str = '2a51510138df'
-down_revision: Union[str, None] = '221b4c94f758'
+down_revision: Union[str, None] = 'f7a925ca459c'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
