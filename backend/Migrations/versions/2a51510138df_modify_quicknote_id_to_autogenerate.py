@@ -27,7 +27,7 @@ def upgrade() -> None:
                     server_default=sa.text("nextval('quick_notes_id_seq')"))
 
     # Set the sequence to the max current value
-    op.execute("SELECT setval('quick_notes_id_seq', (SELECT MAX(quick_notes_id) FROM quick_notes);")
+    op.execute("SELECT setval('quick_notes_id_seq', (SELECT MAX(quick_notes_id) FROM quick_notes));")
 
 
 
