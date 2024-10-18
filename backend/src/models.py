@@ -1,4 +1,5 @@
 # Database models go in here
+import datetime
 from flask_sqlalchemy import SQLAlchemy
 from serializers import SerializerMixin
 import enum
@@ -74,3 +75,15 @@ class MovieList(db.Model, SerializerMixin):
     def movie_serializer(self):
         return self.serialize()
     
+    
+class Quicknote(db.Model, SerializerMixin):
+    __tablename__ = 'quick_notes'
+    
+    quick_notes_id = db.Column(db.Integer, primary_key=True)
+    quick_notes_title = db.Column(db.String(100), nullable=False)
+    content = db.Column(db.Text, nullable=False)
+    created_at = db.Column(db.DateTime)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+
+    def Quicknote_serializer(self):
+        return super().serialize()

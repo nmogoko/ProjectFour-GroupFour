@@ -3,7 +3,7 @@ from flask import Flask, jsonify, request, g
 from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
 from src.config import Config
-from src.models import ReadingList, User, db, Task, MovieList
+from src.models import ReadingList, User, db, Task, MovieList, Quicknote
 from src.utils import with_user_middleware
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_mail import Mail, Message
@@ -351,6 +351,64 @@ def delete_movie(movie_id):
 
     # Return a success message
     return jsonify({"message": "Movie deleted successfully"}), 200
+
+@app.route('/quicknotes', methods=['GET'])
+@with_user_middleware
+def get_all_quicknotes():
+    if g.user_id is None:
+        return jsonify({"error": "Unauthorized access"}), 401
+
+    quicknote_list = Quicknote.query.filter_by(user_id=g.user_id).all()
+    return jsonify([quicknote.quicknote_serializer() for quicknote in quicknote_list])
+
+@app.route('/create_quicknote', methods=['POST'])
+@with_user_middleware
+def create_quicknote(): 
+    print("Hello world")
+    if g.user_id is None:
+        return jsonify({"error": "Unauthorized access"}), 401
+
+    data = request.get_json()
+    if not data or 'title' not in data or 'content' not in data:
+        return jsonify({"error": "Bad Request", "message": "Title and content are required"}), 400
+
+    new_quicknote = Quicknote(
+        title=data['title'],
+        content=data['content'],
+        user_id=g.user_id,
+        created_at=datetime.datetime.now(datetime.timezone.utc)
+    )
+    db.session.add(new_quicknote)
+    db.session.commit()
+
+    return jsonify(new_quicknote.quicknote_serializer()), 201
+
+@app.route('/get_quicknote/<int:quicknote_id>', methods=['GET'])
+@with_user_middleware
+def get_quicknote(quicknote_id):
+    if g.user_id is None:
+        return jsonify({"error": "Unauthorized access"}), 401
+
+    quicknote = Quicknote.query.filter_by(id=quicknote_id, user_id=g.user_id).first()
+    if quicknote is None:
+        return jsonify({"error": "Not Found"}), 404
+
+    return jsonify(quicknote.quicknote_serializer()), 200
+
+@app.route('/delete_quicknote/<int:quicknote_id>', methods=['DELETE'])
+@with_user_middleware
+def delete_quicknote(quicknote_id):
+    if g.user_id is None:
+        return jsonify({"error": "Unauthorized access"}), 401
+
+    quicknote = Quicknote.query.filter_by(id=quicknote_id, user_id=g.user_id).first()
+    if quicknote is None:
+        return jsonify({"error": "Not Found", "message": "Quicknote not found"}), 404
+
+    db.session.delete(quicknote)
+    db.session.commit()
+    return jsonify({"message": "Quicknote deleted successfully"}), 200
+
 
 if __name__ == "__main__":
     app.run(debug=True)
