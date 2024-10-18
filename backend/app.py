@@ -91,7 +91,7 @@ def forgot_password():
         return jsonify({"msg": "Email is required"}), 400
     
     user = User.query.filter_by(email=email).first()
-    
+
     if user is None:
         return jsonify({"msg": "Password reset email sent!"}), 200
 
@@ -104,8 +104,8 @@ def forgot_password():
     reset_token = create_access_token(identity=user_data, expires_delta=datetime.timedelta(minutes=15))
 
     # Send email with reset link
-    msg = Message(subject="Password Reset", 
-                  sender="noreply@yourapp.com", 
+    msg = Message(subject="Password Reset",
+                  sender="noreply@yourapp.com",
                   recipients=[email])
     msg.body = f"Please click the link to reset your password: https://projectfour-groupfour-frontend.onrender.com/reset-password/{reset_token}"
     mail.send(msg)
@@ -116,7 +116,7 @@ def forgot_password():
 def reset_password(token):
     data = request.get_json()
     new_password = data.get('new_password')
-    
+
     if not new_password:
         return jsonify({"msg": "New password is required"}), 400
 
@@ -142,13 +142,18 @@ def reset_password(token):
 @jwt_required(refresh=True)
 def refresh_token():
     current_user = get_jwt_identity()
-    
+
     new_access_token = create_access_token(identity=current_user)
     return jsonify(access_token=new_access_token), 200
 
 @app.route('/reading-list', methods=['GET'])
+@with_user_middleware
 def get_reading_list():
-    reading_list = ReadingList.query.all()
+    # Check if the user is authenticated
+    if g.user_id is None:
+        return jsonify({"error": "Unauthorized access"}), 401
+
+    reading_list = ReadingList.query.filter_by(user_id=g.user_id).all()
     return jsonify([reading_list_item.reading_list_serializer() for reading_list_item in reading_list])
 
 
@@ -393,7 +398,7 @@ def get_all_quicknotes():
 
 @app.route('/create_quicknote', methods=['POST'])
 @with_user_middleware
-def create_quicknote(): 
+def create_quicknote():
     print("Hello world")
     if g.user_id is None:
         return jsonify({"error": "Unauthorized access"}), 401
