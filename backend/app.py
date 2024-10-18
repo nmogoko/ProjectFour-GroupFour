@@ -200,6 +200,36 @@ def create_reading_list_item():
     return jsonify(new_reading_item.reading_list_serializer()), 201
 
 
+@app.route('/update_reading_list/<int:book_id>', methods=['PUT'])
+@with_user_middleware
+def update_reading_list_item(book_id):
+    # Check if the user is authenticated
+    if g.user_id is None:
+        return jsonify({"error": "Unauthorized access"}), 401
+
+    # Get the JSON data from the request
+    data = request.get_json()
+    if not data or 'status' not in data:
+        return jsonify({"error": "Bad Request", "message": "Status is required"}), 400
+
+    # Query the ReadingList item by book_id and user_id to ensure ownership
+    reading_item = ReadingList.query.filter_by(
+        book_id=book_id, user_id=g.user_id).first()
+
+    # Check if the reading item exists
+    if reading_item is None:
+        return jsonify({"error": "Not Found", "message": "Reading list item not found"}), 404
+
+    # Update the status of the reading item
+    reading_item.status = data['status']
+
+    # Commit the changes to the database
+    db.session.commit()
+
+    # Return the updated reading list item
+    return jsonify(reading_item.reading_list_serializer()), 200
+
+
 @app.route('/delete_reading_list/<int:book_id>', methods=['DELETE'])
 @with_user_middleware
 def delete_reading_list_item(book_id):
