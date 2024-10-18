@@ -32,7 +32,7 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
-    pass    # Drop the default if needed
+    # Drop the default if needed
     op.alter_column('reading_list', 'book_id', 
                     server_default=None)
     # Drop the sequence
