@@ -157,7 +157,7 @@ def get_reading_list():
     return jsonify([reading_list_item.reading_list_serializer() for reading_list_item in reading_list])
 
 
-@app.route('/get_reading_list/<int:reading_list_id>', methods=['GET', 'DELETE'])
+@app.route('/get-reading-list/<int:reading_list_id>', methods=['GET', 'DELETE'])
 def get_single_reading_list(reading_list_id):
     reading_list = ReadingList.query.get(reading_list_id)
 
@@ -173,7 +173,7 @@ def get_single_reading_list(reading_list_id):
         return {"message": f"Reading list with id {reading_list_id} has been deleted"}
 
 
-@app.route('/create_reading_list', methods=['POST'])
+@app.route('/create-reading-list', methods=['POST'])
 @with_user_middleware
 def create_reading_list_item():
     # Check if the user is authenticated
@@ -205,37 +205,39 @@ def create_reading_list_item():
     return jsonify(new_reading_item.reading_list_serializer()), 201
 
 
-@app.route('/update_reading_list/<int:book_id>', methods=['PUT'])
+@app.route('/update-reading-list/<int:book_id>', methods=['PATCH'])
 @with_user_middleware
 def update_reading_list_item(book_id):
     # Check if the user is authenticated
     if g.user_id is None:
         return jsonify({"error": "Unauthorized access"}), 401
 
-    # Get the JSON data from the request
+    # Fetch the reading list item by its book_id
+    reading_item = ReadingList.query.filter_by(book_id=book_id, user_id=g.user_id).first()
+
+    if not reading_item:
+        return jsonify({"error": "Not Found", "message": "Book not found"}), 404
+
+    # Get JSON data from the request
     data = request.get_json()
-    if not data or 'status' not in data:
-        return jsonify({"error": "Bad Request", "message": "Status is required"}), 400
 
-    # Query the ReadingList item by book_id and user_id to ensure ownership
-    reading_item = ReadingList.query.filter_by(
-        book_id=book_id, user_id=g.user_id).first()
+    # Update the book_title if provided
+    if 'book_title' in data:
+        reading_item.book_title = data['book_title']
 
-    # Check if the reading item exists
-    if reading_item is None:
-        return jsonify({"error": "Not Found", "message": "Reading list item not found"}), 404
-
-    # Update the status of the reading item
-    reading_item.status = data['status']
+    # Update the status if provided
+    if 'status' in data:
+        reading_item.status = data['status']
 
     # Commit the changes to the database
     db.session.commit()
 
-    # Return the updated reading list item
+    # Return the updated serialized reading list item
     return jsonify(reading_item.reading_list_serializer()), 200
 
 
-@app.route('/delete_reading_list/<int:book_id>', methods=['DELETE'])
+
+@app.route('/delete-reading-list/<int:book_id>', methods=['DELETE'])
 @with_user_middleware
 def delete_reading_list_item(book_id):
     # Check if the user is authenticated
