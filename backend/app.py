@@ -368,6 +368,36 @@ def get_all_movies():
     # Serialize the movie data
     return jsonify([movie.movie_serializer() for movie in movie_list]), 200
 
+@app.route('/update-movie-list/<int:movie_id>', methods=['PATCH'])
+@with_user_middleware
+def update_movie_list_item(movie_id):
+    # Check if the user is authenticated
+    if g.user_id is None:
+        return jsonify({"error": "Unauthorized access"}), 401
+
+    # Fetch the movie list item by its movie_id and associated user_id
+    movie_item = MovieList.query.filter_by(movie_id=movie_id, user_id=g.user_id).first()
+
+    if not movie_item:
+        return jsonify({"error": "Not Found", "message": "Movie not found"}), 404
+
+    # Get JSON data from the request
+    data = request.get_json()
+
+    # Update the movie_title if provided
+    if 'movie_title' in data:
+        movie_item.movie_title = data['movie_title']
+
+    # Update the status if provided
+    if 'status' in data:
+        movie_item.status = data['status']
+
+    # Commit the changes to the database
+    db.session.commit()
+
+    # Return the updated serialized movie list item
+    return jsonify(movie_item.movie_serializer()), 200
+
 @app.route('/delete_movie/<int:movie_id>', methods=['DELETE'])
 @with_user_middleware
 def delete_movie(movie_id):
