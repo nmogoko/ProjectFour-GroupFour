@@ -301,6 +301,37 @@ def get_task(task_id):
     return jsonify(task.tasks_serializer()), 200
 
 
+@app.route('/update-task/<int:task_id>', methods=['PATCH'])
+@with_user_middleware
+def update_task(task_id):
+    # Check if the user is authenticated
+    if g.user_id is None:
+        return jsonify({"error": "Unauthorized access"}), 401
+
+    # Fetch the task item by its task_id and associated user_id
+    task_item = Task.query.filter_by(task_id=task_id, user_id=g.user_id).first()
+
+    if not task_item:
+        return jsonify({"error": "Not Found", "message": "Task not found"}), 404
+
+    # Get JSON data from the request
+    data = request.get_json()
+
+    # Update the task_title if provided
+    if 'task_title' in data:
+        task_item.task_title = data['task_title']
+
+    # Update the status if provided
+    if 'status' in data:
+        task_item.status = data['status']
+
+    # Commit the changes to the database
+    db.session.commit()
+
+    # Return the updated serialized task item
+    return jsonify(task_item.tasks_serializer()), 200
+
+
 @app.route('/delete_task/<int:task_id>', methods=['DELETE'])
 @with_user_middleware
 def delete_task(task_id):
