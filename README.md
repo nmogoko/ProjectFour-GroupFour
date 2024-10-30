@@ -2,7 +2,8 @@
 
 Based on the information provided in the document, here is a sample README file for developing a full-stack API application for the task manager project:
 
----
+# Hosting link
+https://projectfour-groupfour-frontend.onrender.com
 
 # Task Manager Full-Stack Application
 
